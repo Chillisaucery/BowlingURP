@@ -1,0 +1,28 @@
+Idea: Base on the chat application, sending TCP messages.
+
+Server Logic:
+
+Architecture: Singleton for the Client MonoBehaviour. --> Different Component can send the tcp message 
+
+Problem: Multiple Thread - games built with Unity is a single thread application, which means some functionalities might not work in a different thread. Some TCP messages will be sent and processed on a different thread. Luckily, writing data (saving data in variables) still works.
+--> Solution: writing data on different thread. Run Update() to check the data and call the methods when we need it.
+--> Drawbacks: May not work if the project is larger, it is not scalable.
+
+Problem: synchronizing objects movement.
+2 parts: 
+	moving the ball left and right to aim. Each time the ball change the position --> send that position --> The other client receive the message --> So they update their ball
+	physics simulation.
+		Synchronize all --> In Unity, physics simulation happens at 50FPS, which means, the physics calculate and update 50 times per second. We also have 10 objects to simulate. --> (Maybe) Sending too much messages (or too much data) at the same time. 
+			--> Not scalable if there is more objects in the scene.
+			--> Running synchronization at lower FPS (10, or 30 FPS).
+				--> Because this game runs at (at least) 60 FPS, we need to implement some interpolation or extrapolation algorithm for it. --> In other networking solution, they have this. But no, I'm not doing this.
+		Synchronize the throwing force, let Unity handle the simulation --> Solve that, but we have handle the game events more carefully. 
+			--> Lag and incorrect timing might break the synchronization
+			--> We now have more problem to solve
+				Pause --> Synchronizing Pause
+				Reset Section --> Synchronizing this also
+
+
+Task:
+Chuyển TCP Message sang dạng universal: HandleGameplayEventMsg
+Đồng bộ Pause trên toàn bộ những device trong room.

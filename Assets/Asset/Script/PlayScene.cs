@@ -1,9 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class PlayScene : MonoBehaviour
+public class PausePlay : MonoBehaviour
 {
     [SerializeField]
     GameObject pauseCanvas;
@@ -40,5 +41,16 @@ public class PlayScene : MonoBehaviour
             Time.timeScale = 1f;
             SceneManager.LoadScene(0);
         }
+
+        HandleLosingFocus();
+    }
+
+    /// <summary>
+    /// When losing focus (when the player alt tab), pause the game.
+    /// </summary>
+    private void HandleLosingFocus()
+    {
+        if (!isPaused && !Application.isFocused)
+            isPaused = false;
     }
 }

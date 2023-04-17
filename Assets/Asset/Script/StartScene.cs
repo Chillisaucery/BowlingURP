@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -15,17 +16,60 @@ public class StartScene : MonoBehaviour
     [SerializeField]
     Color pressEnterColor1, pressEnterColor2;
 
+    [SerializeField]
+    GameObject profileEnter;
+
+
+
+    //Private variables
+    SceneState sceneState = SceneState.Start;
+
  
     private void Start()
     {
         StartCoroutine(JiggleTextColor(pressEnterText, colorChangeInterval, pressEnterColor1, pressEnterColor2));
+
+        profileEnter.SetActive(false);
     }
 
     // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Return))
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        {
+            //Change State
+            switch (sceneState)
+            {
+                case SceneState.Start:
+                    sceneState = SceneState.EnterData;
+                    break;
+                case SceneState.EnterData:
+                    sceneState = SceneState.End;
+                    break;
+                case SceneState.End:
+                    break;
+            }
+
+            OnSwitchState();
+        }
+    }
+
+    private void OnSwitchState()
+    {
+        switch (sceneState)
+        {
+            case SceneState.Start:
+                break;
+            case SceneState.EnterData:
+                profileEnter.SetActive(true);
+                pressEnterText.text = "Press Enter again to start";
+                break;
+            case SceneState.End:
+                if (PlayerNetworkProfile.Instance.CanJoinGame)
+                    SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+                break;
+        }
+
     }
 
     IEnumerator JiggleTextColor(TMP_Text textMesh, float interval, Color color1, Color color2)
@@ -52,4 +96,11 @@ public class StartScene : MonoBehaviour
             (startingColor, targetColor) = (targetColor, startingColor);
         }
     }
+}
+
+enum SceneState
+{
+    Start,
+    EnterData,
+    End
 }
