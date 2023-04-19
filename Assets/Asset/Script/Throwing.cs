@@ -37,7 +37,7 @@ public class Throwing : MonoBehaviour
     [SerializeField, Range(0, 1)]
     float forceRandomness = 0.5f;
 
-    //Score
+    //Non-serialized cached variables
     Score score;
 
     //Throwing
@@ -85,6 +85,8 @@ public class Throwing : MonoBehaviour
         {
             initialPinTransforms.Add((pinTransform.position, pinTransform.eulerAngles));
         }
+
+        ballRB.isKinematic = true;  //Disable the rigidbody
     }
 
     // Update is called once per frame
@@ -92,6 +94,10 @@ public class Throwing : MonoBehaviour
     {
         HandleTCPMessages();
 
+        //Do nothing if it isn't in turn
+        if (!score.IsInTurn) { return; }
+
+        //Change ball position
         if (!isThrown)
         {
             //Change ball positionString
@@ -130,13 +136,7 @@ public class Throwing : MonoBehaviour
         }
         else if (Input.GetKeyUp(KeyCode.UpArrow) && !isThrown)
         {
-            isThrown = true;
-            forceSlider.gameObject.SetActive(false);
-
-            ballAnimator.Play("Anticipation");
-            ballRB.useGravity = false;
-
-            StartCoroutine(DelayedInvoke(1, ThrowBall));
+            StartCoroutine(ThrowBall(1, false));
         }
 
         //Reset if press space
@@ -168,10 +168,9 @@ public class Throwing : MonoBehaviour
 
     private void OnPositionMsg()
     {
-        if (Client.Instance.LatestMsg.StartsWith("/position"))
+        if (Client.Instance.LatestMsg.StartsWith(POSITION_PREFIX))
         {
             string positionString = Client.Instance.LatestMsg.Substring(9).Trim();
-            Debug.Log("position " + positionString);
 
             networkPosition = ToVector3(JsonConvert.DeserializeObject<SerializableVector3>(positionString));
         }
@@ -179,10 +178,9 @@ public class Throwing : MonoBehaviour
 
     private void OnForceMsg()
     {
-        if (Client.Instance.LatestMsg.StartsWith("/force"))
+        if (Client.Instance.LatestMsg.StartsWith(FORCE_PREFIX))
         {
             string forceString = Client.Instance.LatestMsg.Substring(6).Trim();
-            Debug.Log("force " + forceString);
 
             networkForce = ToVector3(JsonConvert.DeserializeObject<SerializableVector3>(forceString));
         }
@@ -200,8 +198,10 @@ public class Throwing : MonoBehaviour
         //Handle force
         if (networkForce != oldNetworkForce)
         {
-            ThrowBall(networkForce);
-            oldNetworkForce = networkForce; 
+            throwingForce = networkForce;
+            oldNetworkForce = networkForce;
+
+            StartCoroutine(ThrowBall(1, true));
         }
     }
     #endregion
@@ -267,6 +267,10 @@ public class Throwing : MonoBehaviour
         forceSlider.gameObject.SetActive(true);
         forceSlider.value = throwingStrength / maxThrowingForce;
 
+        ballRB.isKinematic = true;  //Disable the rb
+
+        if (!score.IsInTurn) return;
+
         if (OnReset != null)
             OnReset.Invoke();
     }
@@ -281,29 +285,43 @@ public class Throwing : MonoBehaviour
             forceCanvas.eulerAngles.z);
     }
 
-    private void ThrowBall()
+    IEnumerator ThrowBall(float delay, bool isFromTCP)
     {
+        if (!isFromTCP)
+        {
+            //Only calculate the force if it isn't from TCP. Because in TCP, the force is already calculated
+            throwingForce = (throwingDirection + new Vector3(1, 0, 0)).normalized * throwingStrength;
+
+            // Serialize the dictionary to a JSON string
+            var throwingForceJson = JsonConvert.SerializeObject(new SerializableVector3(throwingForce));
+
+            //Send it to other clients
+            Client.Instance.SendTCPMessage("/force " + throwingForceJson);
+        }
+
+        //Play the throwing animation, disable physics while doing so
+        isThrown = true;
+        forceSlider.gameObject.SetActive(false);
+
+        ballAnimator.Play("Anticipation");
+        ballRB.useGravity = false;
+
+        yield return new WaitForSeconds(delay);
+
+        //Actually throwing the ball with physics
+        ballRB.isKinematic = false;     //Enable the rb
         ballRB.useGravity = true;
 
-        throwingForce = (throwingDirection + new Vector3(1, 0, 0)).normalized * throwingStrength;
-        ThrowBall(throwingForce);
-
-        // Serialize the dictionary to a JSON string
-        var throwingForceJson = JsonConvert.SerializeObject(new SerializableVector3(throwingForce));
-
-        Client.Instance.SendTCPMessage("/force " + throwingForceJson);
-
-        if (OnThrow != null)
-            OnThrow.Invoke();
-    }
-
-    private void ThrowBall(Vector3 throwingForce)
-    {
         ballRB.AddForce(throwingForce);
 
         ballAnimator.Play("Idle");
 
-        StartCoroutine(DelayedInvoke(resetDelay, () => ResetThrowing(score.ShouldHardReset)));
+        if (OnThrow != null)
+            OnThrow.Invoke();
+
+        //Wait for a bit, and then reset
+        yield return new WaitForSeconds(resetDelay);
+        ResetThrowing(score.ShouldHardReset);  
     }
     #endregion
 }

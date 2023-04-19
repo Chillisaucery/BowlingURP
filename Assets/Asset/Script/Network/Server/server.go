@@ -22,7 +22,7 @@ var rooms []room
 var maxPlayer = 2
 
 func main() {
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 2048)
 
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -77,15 +77,14 @@ func main() {
 					continue
 				}
 
-				//Reaching this code means there are only game event messages left. Handle game event messages
-				onGameEventMsg(message, conn)
-
-				for _, c := range clients {
-					//Broadcasting messages
-					if conn.RemoteAddr().String() != c.conn.RemoteAddr().String() {
-						c.conn.Write([]byte(fmt.Sprintf("%s\n", message)))
-					}
+				if strings.HasPrefix(message, "/start") {
+					onStartGame(conn)
+					continue
 				}
+
+				//Reaching this code means there are only game event messages left.
+				//Handle game event messages by passing them to the other client without changing the message
+				onGameEventMsg(message, conn)
 			}
 		}(conn)
 	}
@@ -98,7 +97,7 @@ func onGameEventMsg(message string, conn net.Conn) {
 
 	if isInRoom {
 
-		fmt.Println("Game Event in room ", roomIndex, ": ", message)
+		fmt.Println("Game Event in room ", roomIndex, ", with ", len(rooms[roomIndex].clients), "clients: ", message)
 
 		for i := 0; i < maxPlayer; i++ {
 			// Send the msg to all the recipient in the room, except if the receiving client is the sender
@@ -112,7 +111,20 @@ func onGameEventMsg(message string, conn net.Conn) {
 	}
 }
 
-//Registration
+// Registration
+func onStartGame(conn net.Conn) bool {
+	//Find the room and the index that the player currently is in
+	isInRoom, _, clientInRoomIndex := doesRoomHaveClient(conn)
+
+	if isInRoom {
+		//Notify the client with their client index
+		conn.Write([]byte(fmt.Sprintf("/playerCode %d\n", clientInRoomIndex)))
+
+		return true
+	}
+
+	return false
+}
 
 func onRoomRegister(roomName string, conn net.Conn) bool {
 	//Check if the room is already there or not

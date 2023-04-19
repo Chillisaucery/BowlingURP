@@ -7,13 +7,6 @@ using static GlobalMethods;
 
 public class TextInputHandler : MonoBehaviour
 {
-    #region Constants
-    public static readonly string NAME_PREFIX = "/name ";
-    public static readonly string ROOM_PREFIX = "/room ";
-    #endregion
-
-
-
     [SerializeField]
     TMP_Text nameTextMesh, roomIDTextMesh;
 

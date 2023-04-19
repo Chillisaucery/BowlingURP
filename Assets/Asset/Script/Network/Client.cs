@@ -52,7 +52,7 @@ public class Client: MonoBehaviour
             client = new TcpClient(ipAddress, port);
             Debug.Log("Connected to server");
 
-            // Start a new thread to read incoming messages from the server
+            //Start a new thread to read incoming messages from the server
             System.Threading.Thread thread = new System.Threading.Thread(new System.Threading.ThreadStart(ReceiveTCPMessages));
             thread.Start();
         }
@@ -78,7 +78,7 @@ public class Client: MonoBehaviour
             // Get the NetworkStream object associated with the TcpClient
             NetworkStream stream = client.GetStream();
 
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[2048];
             string message = "";
 
             while (true)
@@ -93,10 +93,11 @@ public class Client: MonoBehaviour
                     string processedMsg = message.TrimEnd();
                     Debug.Log("Received message from server: " + processedMsg);
                     LatestMsg = processedMsg;
+
                     message = "";
 
                     if (OnReceiveMessage != null)
-                        OnReceiveMessage.Invoke();
+                        OnReceiveMessage.Invoke();   
                 }
             }
         }

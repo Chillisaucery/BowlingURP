@@ -1,7 +1,5 @@
 Idea: Base on the chat application, sending TCP messages.
 
-Thread: Cannot use single thread, at all. The handicap is, many method from Unity can only executed on the main thread --> Have to work around.
-
 Server Logic:
 
 Architecture: Singleton for the Client MonoBehaviour. --> Different Component can send the tcp message 
@@ -23,17 +21,10 @@ Problem: synchronizing objects movement.
 			--> We now have more problem to solve
 				Pause --> Synchronizing Pause
 				Reset Section --> Synchronizing this also
-				Synchronize: Pins (What to keep), Forces on Pin, Score
 
 
 Task:
-Bug: Khi di chuyển bóng ở player 2 (xanh) hoặc di chuyển ngay khi vừa bắt đầu game --> Lỗi
-
+Chuyển TCP Message sang dạng universal: HandleGameplayEventMsg
 Đồng bộ Pause trên toàn bộ những device trong room.
 Đồng bộ điểm (bởi vì giả lập physics sẽ có thể có những sai số nhỏ)
-
-Disable khi đến turn người chơi khác
-
-if possible, use broadcast
-
-
+Lần đầu khởi động server, game có thể bị lỗi, ko đồng bộ game event được.
