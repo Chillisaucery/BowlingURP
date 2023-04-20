@@ -3,6 +3,8 @@ using System;
 using System.Net.Sockets;
 using Unity.VisualScripting;
 using static GlobalMethods;
+using System.Linq;
+using System.Collections.Generic;
 
 public class Client: MonoBehaviour
 {
@@ -11,7 +13,7 @@ public class Client: MonoBehaviour
 
     private void Awake()
     {
-        // If there is an instance, and it's not me, delete myself.
+        // If there is an instance, and it'msg not me, delete myself.
         if (Instance != null && Instance != this)
         {
             // Destroy any additional instances of the singleton
@@ -90,14 +92,23 @@ public class Client: MonoBehaviour
                 // Process the message
                 if (message.EndsWith("\n"))
                 {
-                    string processedMsg = message.TrimEnd();
-                    Debug.Log("Received message from server: " + processedMsg);
-                    LatestMsg = processedMsg;
+                    //Split the message, in case tcp message stucked together
+                    List<string> splitedMessages = message.Split(new char[] { '/' }, StringSplitOptions.None).ToList();
+
+                    //Remove all short msg (which are invalid messages)
+                    splitedMessages.RemoveAll(msg => msg.Length <=2);
+
+                    foreach (string splitedMsg in splitedMessages)
+                    {
+                        string processedMsg = '/' + splitedMsg.TrimEnd();
+                        Debug.Log("Received message from server: " + processedMsg + ". Raw is: " + splitedMsg);
+                        LatestMsg = processedMsg;
+
+                        if (OnReceiveMessage != null)
+                            OnReceiveMessage.Invoke();
+                    }
 
                     message = "";
-
-                    if (OnReceiveMessage != null)
-                        OnReceiveMessage.Invoke();   
                 }
             }
         }

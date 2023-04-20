@@ -20,6 +20,7 @@ public static class GlobalMethods
     public static readonly string RESET_THROW_PREFIX = "/resetThrow ";
     public static readonly string CHANGE_PLAYER_PREFIX = "/changePlayer ";
     public static readonly string CHANGE_ROUND_PREFIX = "/changeRound ";
+    public static readonly string RESET_PINS_PREFIX = "/resetPins ";
 
 
     public static readonly Regex nonAlphanumericRegex = new Regex("[^a-zA-Z0-9 ]+");

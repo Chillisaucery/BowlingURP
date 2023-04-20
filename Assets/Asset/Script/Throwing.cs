@@ -49,6 +49,19 @@ public class Throwing : MonoBehaviour
     bool isThrown = false;
     Vector3 throwingForce = Vector3.zero;
     public Vector3 ThrowingForce { get => throwingForce; private set => throwingForce = value; }
+    public int[] StandingPins { get
+        {
+            List<int> pinIndexes = new List<int>();
+            
+            for (int i=0; i<pinTransforms.Count; i++)
+            {
+                if (pinTransforms[i].gameObject.activeInHierarchy)
+                    pinIndexes.Add(i);
+            }
+
+            return pinIndexes.ToArray();
+        } 
+    }
 
     //Initial 
     Vector3 initialBallPos;
@@ -243,6 +256,25 @@ public class Throwing : MonoBehaviour
 
         throwingStrength = 0;
         throwingDirection = new Vector3(UnityEngine.Random.Range(-1f, 1f), 0, UnityEngine.Random.Range(-forceRandomness, forceRandomness)).normalized;
+        
+        ResetPins(shouldHardReset);
+
+        isThrown = false;
+        forceSlider.gameObject.SetActive(true);
+        forceSlider.value = throwingStrength / maxThrowingForce;
+
+        ballRB.isKinematic = true;  //Disable the rb
+
+        if (!score.IsInTurn) return;
+
+        if (OnReset != null)
+            OnReset.Invoke();
+    }
+
+    public void ResetPins(bool shouldHardReset)
+    {
+        //Do nothing if it isn't in turn
+        if (!score.IsInTurn) { return; }
 
         for (int i = 0; i < pinTransforms.Count; i++)
         {
@@ -262,17 +294,21 @@ public class Throwing : MonoBehaviour
             pinTransforms[i].GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
             pinTransforms[i].GetComponent<Rigidbody>().velocity = Vector3.zero;
         }
+    }
 
-        isThrown = false;
-        forceSlider.gameObject.SetActive(true);
-        forceSlider.value = throwingStrength / maxThrowingForce;
+    public void ResetPins(int[] standingPins)
+    {
+        for (int i = 0; i < pinTransforms.Count; i++)
+        {
+            pinTransforms[i].gameObject.SetActive(false);
+            pinTransforms[i].position = initialPinTransforms[i].pos;
+            pinTransforms[i].eulerAngles = initialPinTransforms[i].eulerAngle;
+            pinTransforms[i].GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
+            pinTransforms[i].GetComponent<Rigidbody>().velocity = Vector3.zero;
+        }
 
-        ballRB.isKinematic = true;  //Disable the rb
-
-        if (!score.IsInTurn) return;
-
-        if (OnReset != null)
-            OnReset.Invoke();
+        foreach (int pin in standingPins)
+            pinTransforms[pin].gameObject.SetActive(true);
     }
 
     private void RotateForceCanvas(RectTransform forceCanvas, Vector3 throwingDirection)

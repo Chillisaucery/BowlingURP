@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,6 +39,11 @@ public class Score : MonoBehaviour
     int subRound = 1;
     Color initTextColor;
 
+    int[] standingPins = null;
+    int[] oldStandingPins = null;
+
+    bool shouldHardResetPins = false;
+
 
 
     private void OnEnable()
@@ -77,7 +83,25 @@ public class Score : MonoBehaviour
         ChangeTextColor();
         ChangeBallColor();
 
+        HandleTCPMessages();
+
         roundTextMesh.text = scoreProfile.Round.ToString();
+    }
+
+    private void HandleTCPMessages()
+    {
+        //Handle reseting pins
+        if (standingPins != oldStandingPins)
+        {
+            throwing.ResetPins(standingPins);
+            oldStandingPins = standingPins;
+        }
+
+        if (shouldHardResetPins)
+        {
+            throwing.ResetPins(true);   //Hard reset if it goes into new player
+            shouldHardResetPins = false;
+        }
     }
 
     private void ChangeBallColor()
@@ -107,9 +131,19 @@ public class Score : MonoBehaviour
     {
         //This TCP call has to be above
         if (IsInTurn)
+        {
             Client.Instance.SendTCPMessage(RESET_THROW_PREFIX + scoreProfile.CurrentScore);
 
-        subRound++;
+            string pinMsg = JsonConvert.SerializeObject(throwing.StandingPins);
+            Client.Instance.SendTCPMessage(RESET_PINS_PREFIX + pinMsg);
+
+            subRound++;
+        }
+        else
+        {
+            subRound = 1;
+            scoreThisRound = 0;
+        }
 
         //Hard Reset
         if ((subRound >= 3) || scoreThisRound >= 10)
@@ -117,7 +151,6 @@ public class Score : MonoBehaviour
             scoreProfile.ChangePlayer();
             subRound = 1;
             scoreThisRound = 0;
-
 
             Client.Instance.SendTCPMessage(CHANGE_PLAYER_PREFIX + scoreProfile.CurrentPlayer);
             Client.Instance.SendTCPMessage(CHANGE_ROUND_PREFIX + scoreProfile.Round);
@@ -163,6 +196,8 @@ public class Score : MonoBehaviour
                     scoreProfile.CurrentPlayer = PlayerID.Player1;
                 else if (Client.Instance.LatestMsg.Contains("2"))
                     scoreProfile.CurrentPlayer = PlayerID.Player2;
+
+                shouldHardResetPins = true;
             }
             if (Client.Instance.LatestMsg.StartsWith(CHANGE_ROUND_PREFIX))
             {
@@ -174,6 +209,13 @@ public class Score : MonoBehaviour
 
             subRound = 1;
             scoreThisRound = 0;
+        }
+
+        if (Client.Instance.LatestMsg.StartsWith(RESET_PINS_PREFIX))
+        {
+            string pinsString = Client.Instance.LatestMsg.Substring(RESET_PINS_PREFIX.Length).Trim();
+
+            standingPins = JsonConvert.DeserializeObject<int[]>(pinsString);
         }
     }
 }

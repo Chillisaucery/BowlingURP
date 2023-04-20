@@ -1,6 +1,7 @@
 Idea: Base on the chat application, sending TCP messages.
 
 Thread: Cannot use single thread, at all. The handicap is, many method from Unity can only executed on the main thread --> Have to work around.
+	(Rendering maybe use another thread, this is also true for Unreal Engine)
 
 Server Logic:
 
@@ -35,5 +36,7 @@ Bug: Khi di chuyển bóng ở player 2 (xanh) hoặc di chuyển ngay khi vừa
 Disable khi đến turn người chơi khác
 
 if possible, use broadcast
+
+tcp message got merged together
 
 
